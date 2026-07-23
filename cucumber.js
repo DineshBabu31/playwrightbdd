@@ -13,7 +13,6 @@ let options = [
     '--format summary',
     '--format rerun:@rerun.txt',
     '--format json:./test-results/reports/cucumber.json',
-    '--publish-quiet true',
     `--parallel=${process.env.PARALLEL_THREAD}`,
     `--format-options '{"snippetInterface":"async-await"}'`,
     `--retry=${process.env.RETRIES}`,

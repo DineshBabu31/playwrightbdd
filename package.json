@@ -4,7 +4,7 @@
   "description": "Sample project with Playwright and Cucumber",
   "main": "index.js",
   "scripts": {
-    "test": "npx cucumber-js -p runner & npx ts-node ./src/support/reporter/HTMLReporter.ts & npx ts-node ./src/support/reporter/CucumberReporter.ts",
+    "test": "npx cucumber-js -p runner && npx ts-node ./src/support/reporter/HTMLReporter.ts && npx ts-node ./src/support/reporter/CucumberReporter.ts",
     "test:tags": "npx cucumber-js -p runner --tags",
     "failed:test": "npx cucumber-js -p rerun",
     "report": "mkdir -p test-results/reports && npx ts-node ./src/support/reporter/HTMLReporter.ts && npx ts-node ./src/support/reporter/CucumberReporter.ts",
@@ -43,7 +43,7 @@
     "eslint-plugin-playwright": "0.8.0",
     "fetch-to-curl": "0.5.2",
     "fs-extra": "10.1.0",
-    "ibm_db": "^3.3.0",
+    "ibm_db": "^3.1.0",
     "jsonpath": "^1.3.0",
     "moment": "2.29.4",
     "mssql": "^11.0.1",
