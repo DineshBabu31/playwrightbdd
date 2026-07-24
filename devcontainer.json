@@ -4,7 +4,7 @@
   "dockerFile": "../dockerFile",
   "appPort": [3000],
   "remoteEnv": {
-    "BROWSERSTACK_USERNAME": "dineshbabuganesa_lVaRbg",
-    "BROWSERSTACK_ACCESS_KEY": "cw6SZ2Zd1SZxR4eCiwRH"
+    "BROWSERSTACK_USERNAME": "dineshbabug_wMmAvc",
+    "BROWSERSTACK_ACCESS_KEY": "o7s8pzE9RBJKdGidoPGC"
   }
 }
