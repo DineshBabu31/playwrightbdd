@@ -1,5 +1,6 @@
 import UIActions from "../../support/playwright/actions/UIActions";
 import { page1 } from "../../support/config/hooks";
+import { browserstackCredentials } from "../../../global-setup";
 
 import {
     expect,
@@ -46,15 +47,21 @@ export default class OrangeHRMHomePage {
 
     private async launchBrowser(browserType: string) {
         const normalizedBrowser = browserType.toLowerCase();
+        const browserstackUser = process.env.BROWSERSTACK_USER || process.env.BROWSERSTACK_USERNAME || browserstackCredentials.username || '';
+        const browserstackAccessKey = process.env.BROWSERSTACK_ACCESS_KEY || browserstackCredentials.accessKey || '';
         const browserStackCaps = {
             browser: 'playwright-chromium',
-            os: 'Windows',
-            os_version: '10',
-            name: 'Playwright Test',
-            build: 'playwright-build-1',
+            os: process.env.BROWSERSTACK_OS || 'Windows',
+            os_version: process.env.BROWSERSTACK_OS_VERSION || '10',
+            name: process.env.BROWSERSTACK_BUILD_NAME || 'Playwright Test',
+            build: process.env.BROWSERSTACK_BUILD_NAME || 'playwright-build-1',
+            project: process.env.BROWSERSTACK_PROJECT_NAME || 'playwrightbdd',
             'browserstack.local': 'false',
-            'browserstack.user': process.env.BROWSERSTACK_USER || '',
-            'browserstack.key': process.env.BROWSERSTACK_ACCESS_KEY || '',
+            'browserstack.user': browserstackUser,
+            'browserstack.key': browserstackAccessKey,
+            'browserstack.video': 'true',
+            'browserstack.debug': 'true',
+            'browserstack.console': 'info',
         };
 
         const launchOptions = {
@@ -64,7 +71,7 @@ export default class OrangeHRMHomePage {
 
         if (['chromium', 'playwright-chromium', 'chrome'].includes(normalizedBrowser)) {
             browserStackCaps.browser = 'playwright-chromium';
-            if (process.env.BROWSERSTACK_USER && process.env.BROWSERSTACK_ACCESS_KEY) {
+            if (browserstackUser && browserstackAccessKey) {
                 return chromium.connect({
                     wsEndpoint: `wss://cdp.browserstack.com/playwright?caps=${encodeURIComponent(JSON.stringify(browserStackCaps))}`
                 });
@@ -74,7 +81,7 @@ export default class OrangeHRMHomePage {
 
         if (['firefox', 'playwright-firefox'].includes(normalizedBrowser)) {
             browserStackCaps.browser = 'playwright-firefox';
-            if (process.env.BROWSERSTACK_USER && process.env.BROWSERSTACK_ACCESS_KEY) {
+            if (browserstackUser && browserstackAccessKey) {
                 return firefox.connect({
                     wsEndpoint: `wss://cdp.browserstack.com/playwright?caps=${encodeURIComponent(JSON.stringify(browserStackCaps))}`
                 });
@@ -84,7 +91,7 @@ export default class OrangeHRMHomePage {
 
         if (['webkit', 'safari', 'playwright-webkit'].includes(normalizedBrowser)) {
             browserStackCaps.browser = 'playwright-webkit';
-            if (process.env.BROWSERSTACK_USER && process.env.BROWSERSTACK_ACCESS_KEY) {
+            if (browserstackUser && browserstackAccessKey) {
                 return webkit.connect({
                     wsEndpoint: `wss://cdp.browserstack.com/playwright?caps=${encodeURIComponent(JSON.stringify(browserStackCaps))}`
                 });
@@ -94,7 +101,7 @@ export default class OrangeHRMHomePage {
 
         if (normalizedBrowser === 'edge') {
             browserStackCaps.browser = 'edge';
-            if (process.env.BROWSERSTACK_USER && process.env.BROWSERSTACK_ACCESS_KEY) {
+            if (browserstackUser && browserstackAccessKey) {
                 return chromium.connect({
                     wsEndpoint: `wss://cdp.browserstack.com/playwright?caps=${encodeURIComponent(JSON.stringify(browserStackCaps))}`
                 });

@@ -3,6 +3,7 @@ import { chromium, firefox, webkit, Browser, BrowserContext, Page } from "@playw
 import fse from "fs-extra";
 import UIActions from "../playwright/actions/UIActions";
 import Log from "../logger/Log";
+import { browserstackCredentials } from "../../../global-setup";
 
 const timeInMin: number = 60 * 1000;
 setDefaultTimeout(Number.parseInt(process.env.TEST_TIMEOUT, 10) * timeInMin);
@@ -29,16 +30,23 @@ BeforeAll(async function () {
 
     try {
         const browserType = (process.env.BROWSER || 'chromium').toLowerCase();
-        const useBrowserStack = Boolean(process.env.BROWSERSTACK_USER && process.env.BROWSERSTACK_ACCESS_KEY);
+        const forceLocal = process.env.FORCE_LOCAL === 'true';
+        const browserstackUser = process.env.BROWSERSTACK_USER || process.env.BROWSERSTACK_USERNAME || browserstackCredentials.username || '';
+        const browserstackAccessKey = process.env.BROWSERSTACK_ACCESS_KEY || browserstackCredentials.accessKey || '';
+        const useBrowserStack = !forceLocal && Boolean(browserstackUser && browserstackAccessKey);
         const browserStackCaps = {
             browser: browserType === 'firefox' ? 'playwright-firefox' : browserType === 'webkit' || browserType === 'safari' ? 'playwright-webkit' : browserType === 'edge' ? 'edge' : 'playwright-chromium',
-            os: 'Windows',
-            os_version: '10',
-            name: 'Playwright Test',
-            build: 'playwright-build-1',
+            os: process.env.BROWSERSTACK_OS || 'Windows',
+            os_version: process.env.BROWSERSTACK_OS_VERSION || '10',
+            name: process.env.BROWSERSTACK_BUILD_NAME || 'Playwright Test',
+            build: process.env.BROWSERSTACK_BUILD_NAME || 'playwright-build-1',
+            project: process.env.BROWSERSTACK_PROJECT_NAME || 'playwrightbdd',
             'browserstack.local': 'false',
-            'browserstack.user': process.env.BROWSERSTACK_USER || '',
-            'browserstack.key': process.env.BROWSERSTACK_ACCESS_KEY || '',
+            'browserstack.user': browserstackUser,
+            'browserstack.key': browserstackAccessKey,
+            'browserstack.video': 'true',
+            'browserstack.debug': 'true',
+            'browserstack.console': 'info',
         };
 
         if (useBrowserStack) {
@@ -89,11 +97,12 @@ Before(async function ({ pickle, gherkinDocument }: ITestCaseHookParameter) {
     const { line } = formatterHelpers.PickleParser.getPickleLocation({ gherkinDocument, pickle });
     Log.testBegin(`${pickle.name}: ${line}`);
 
+    const shouldRecordVideo = process.env.RECORD_VIDEO === 'true' || !browserstackCredentials.username;
     this.context = await browser.newContext({
         viewport: null,
         ignoreHTTPSErrors: true,
         acceptDownloads: true,
-        recordVideo: process.env.RECORD_VIDEO === "true" ? { dir: './test-results/videos' } : undefined,
+        recordVideo: shouldRecordVideo ? { dir: './test-results/videos' } : undefined,
     });
 
     const windowSize = await getWindowSize(this.context);
@@ -132,7 +141,7 @@ After(async function ({ result, pickle, gherkinDocument }: ITestCaseHookParamete
     await page1.close();
     await this.context.close();
 
-    if (process.env.RECORD_VIDEO === "true") {
+    if ((process.env.RECORD_VIDEO === 'true' || !browserstackCredentials.username) && this.context) {
         const video = page1.video();
         if (video && typeof video.path === 'function') {
             try {
