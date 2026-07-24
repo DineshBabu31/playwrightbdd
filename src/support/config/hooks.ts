@@ -23,29 +23,50 @@ async function getWindowSize(context: BrowserContext) {
     return windowSize;
 }
 
-// Connect to BrowserStack and launch the browser
+// Connect to BrowserStack when credentials are available; otherwise launch locally.
 BeforeAll(async function () {
-    console.log('Connecting to BrowserStack...');
+    console.log('Preparing browser session...');
 
     try {
-        // BrowserStack capabilities
+        const browserType = (process.env.BROWSER || 'chromium').toLowerCase();
+        const useBrowserStack = Boolean(process.env.BROWSERSTACK_USER && process.env.BROWSERSTACK_ACCESS_KEY);
         const browserStackCaps = {
-            browser: 'chrome',
+            browser: browserType === 'firefox' ? 'playwright-firefox' : browserType === 'webkit' || browserType === 'safari' ? 'playwright-webkit' : browserType === 'edge' ? 'edge' : 'playwright-chromium',
             os: 'Windows',
             os_version: '10',
             name: 'Playwright Test',
             build: 'playwright-build-1',
-            'browserstack.user': "dineshbabuganesa_lVaRbg",
-            'browserstack.key': "cw6SZ2Zd1SZxR4eCiwRH",
+            'browserstack.local': 'false',
+            'browserstack.user': process.env.BROWSERSTACK_USER || '',
+            'browserstack.key': process.env.BROWSERSTACK_ACCESS_KEY || '',
         };
 
-        browser = await chromium.connect({
-            wsEndpoint: `wss://cdp.browserstack.com/playwright?caps=${encodeURIComponent(JSON.stringify(browserStackCaps))}`
-        });
+        if (useBrowserStack) {
+            browser = await chromium.connect({
+                wsEndpoint: `wss://cdp.browserstack.com/playwright?caps=${encodeURIComponent(JSON.stringify(browserStackCaps))}`
+            });
+            console.log('Connected to BrowserStack');
+            return;
+        }
 
-        console.log('Connected to BrowserStack');
+        const launchOptions = {
+            headless: true,
+            args: ['--disable-extensions', '--disable-plugins'],
+        };
+
+        if (browserType === 'firefox') {
+            browser = await firefox.launch(launchOptions);
+        } else if (browserType === 'webkit' || browserType === 'safari') {
+            browser = await webkit.launch(launchOptions);
+        } else if (browserType === 'edge') {
+            browser = await chromium.launch({ ...launchOptions, channel: 'msedge' as any });
+        } else {
+            browser = await chromium.launch(launchOptions);
+        }
+
+        console.log('Launched browser locally');
     } catch (error) {
-        console.error(`Error connecting to BrowserStack: ${error.message}`);
+        console.error(`Error preparing browser: ${error instanceof Error ? error.message : error}`);
         throw error;
     }
 });
@@ -112,13 +133,20 @@ After(async function ({ result, pickle, gherkinDocument }: ITestCaseHookParamete
     await this.context.close();
 
     if (process.env.RECORD_VIDEO === "true") {
-        const videoPath = await page1.video()?.path();
-        if (videoPath) {
-            if (status === Status.FAILED) {
-                fse.renameSync(videoPath, `./test-results/videos/${scenario}(${line}).webm`);
-                await this.attach(fse.readFileSync(`./test-results/videos/${scenario}(${line}).webm`), 'video/webm');
-            } else {
-                fse.unlinkSync(videoPath);
+        const video = page1.video();
+        if (video && typeof video.path === 'function') {
+            try {
+                const videoPath = await video.path();
+                if (videoPath) {
+                    if (status === Status.FAILED) {
+                        fse.renameSync(videoPath, `./test-results/videos/${scenario}(${line}).webm`);
+                        await this.attach(fse.readFileSync(`./test-results/videos/${scenario}(${line}).webm`), 'video/webm');
+                    } else {
+                        fse.unlinkSync(videoPath);
+                    }
+                }
+            } catch (videoError) {
+                console.warn('Video cleanup skipped:', videoError);
             }
         }
     }

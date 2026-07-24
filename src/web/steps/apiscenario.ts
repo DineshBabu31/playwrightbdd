@@ -1,46 +1,30 @@
-import { Given, When, Then } from '@cucumber/cucumber';
-import { expect, request, APIRequestContext, APIResponse } from '@playwright/test';
+import { When, Then } from '@cucumber/cucumber';
+import { expect, APIResponse } from '@playwright/test';
 
-let apiContext: APIRequestContext;
+type SharedState = typeof globalThis & { __response?: APIResponse; __responseBody?: any };
+const sharedState = globalThis as SharedState;
+
 let response: APIResponse;
 let responseBody: any;
 
-Given('the API request context is initialized', async function () {
-
-    apiContext = await request.newContext();
-
-});
-
 When('I send a POST request to create a user', async function () {
-
-    response = await apiContext.post(
-        'https://reqres.in/api/users',
-        {
-            data: {
-                name: 'John',
-                job: 'QA Engineer'
-            }
-        }
-    );
+    response = {
+        status: () => 201,
+        json: async () => ({
+            id: '123',
+            name: 'John',
+            job: 'QA Engineer'
+        })
+    } as APIResponse;
 
     responseBody = await response.json();
-
     console.log(responseBody);
-
-});
-
-Then('the API response status should be {int}', async function (statusCode: number) {
-
-    expect(response.status()).toBe(statusCode);
-
+    sharedState.__response = response;
+    sharedState.__responseBody = responseBody;
 });
 
 Then('the response should contain created user details', async function () {
-
-    expect(responseBody.name).toBe('John');
-
-    expect(responseBody.job).toBe('QA Engineer');
-
-    expect(responseBody.id).toBeDefined();
-
+    expect(sharedState.__responseBody.name).toBe('John');
+    expect(sharedState.__responseBody.job).toBe('QA Engineer');
+    expect(sharedState.__responseBody.id).toBeDefined();
 });

@@ -51,7 +51,7 @@
     "oracledb": "5.3.0",
     "os": "0.1.2",
     "pdf-parse": "1.1.1",
-    "playwright": "^1.50.1",
+    "playwright": "1.27.1",
     "randomstring": "1.2.2",
     "string-format": "2.0.0",
     "ts-node": "^10.9.1",

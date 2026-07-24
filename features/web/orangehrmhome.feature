@@ -2,7 +2,7 @@ Feature: OrangeHRM Employee Validation
 
   Scenario: Login and Navigate to PIM
 
-    Given user Launch the browser "chromium" in maximized mode and navigate to the URL "https://opensource-demo.orangehrmlive.com/"
+    Given user Launch the browser "playwright-chromium" in maximized mode and navigate to the URL "https://opensource-demo.orangehrmlive.com/"
 
     When User enters username "Admin"
     And User enters password "admin123"
