@@ -24,12 +24,12 @@ export default class OrangeHRMHomePage {
     private Password_TEXTBOX = 'input[name="password"]';
     private Login_BUTTON = 'button[type="submit"], input[type="submit"]';
 
-    private Dashboard_Header = '//h6[text()="Dashboard"]';
+    private Dashboard_Header = 'h6, [role="heading"]';
 
-    private PIM_Link = '//a//span[text()="PIM"]';
+    private PIM_Link = 'a[href*="/pim/viewPimModule"]';
 
     private Employee_Information_Header =
-        '//h5[text()="Employee Information"]';
+        'h5, h6';
 
     private async getWindowSize(page: Page) {
 
@@ -53,10 +53,11 @@ export default class OrangeHRMHomePage {
             browser: 'playwright-chromium',
             os: process.env.BROWSERSTACK_OS || 'Windows',
             os_version: process.env.BROWSERSTACK_OS_VERSION || '10',
+            browser_version: process.env.BROWSERSTACK_BROWSER_VERSION || 'latest',
             name: process.env.BROWSERSTACK_BUILD_NAME || 'Playwright Test',
             build: process.env.BROWSERSTACK_BUILD_NAME || 'playwright-build-1',
             project: process.env.BROWSERSTACK_PROJECT_NAME || 'playwrightbdd',
-            'browserstack.local': 'false',
+            'browserstack.local': process.env.BROWSERSTACK_LOCAL === 'true' ? 'true' : 'false',
             'browserstack.user': browserstackUser,
             'browserstack.key': browserstackAccessKey,
             'browserstack.video': 'true',
@@ -160,29 +161,22 @@ export default class OrangeHRMHomePage {
     }
 
     public async verifyDashboardPage() {
-
-        await page1.waitForSelector(
-            this.Dashboard_Header,
-            { state: "visible", timeout: 60000 }
-        );
+        await page1.locator(this.Dashboard_Header)
+            .filter({ hasText: /dashboard|cockpit/i })
+            .first()
+            .waitFor({ state: 'visible', timeout: 60000 });
     }
 
     public async clickPIMMenu() {
-
-        await page1.waitForSelector(
-            this.PIM_Link,
-            { state: "visible", timeout: 60000 }
-        );
-
-        await page1.locator(this.PIM_Link)
-            .click();
+        const pimMenu = page1.locator(this.PIM_Link).filter({ hasText: /^PIM$/i }).first();
+        await pimMenu.waitFor({ state: 'visible', timeout: 60000 });
+        await pimMenu.click();
     }
 
     public async verifyEmployeeInformationPage() {
-
-        await page1.waitForSelector(
-            this.Employee_Information_Header,
-            { state: "visible", timeout: 60000 }
-        );
+        await page1.locator(this.Employee_Information_Header)
+            .filter({ hasText: /employee information/i })
+            .first()
+            .waitFor({ state: 'visible', timeout: 60000 });
     }
 }

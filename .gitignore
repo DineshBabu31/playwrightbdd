@@ -1,4 +1,10 @@
-/test-results
+/test-results/*
+!/test-results/reports/
+!/test-results/reports/html/
+!/test-results/reports/html/index.html
+!/test-results/reports/html/index.pdf
+!/test-results/reports/cucumber.html
+!/test-results/reports/cucumber.json
 /allure-results
 /allure-report
 /node_modules

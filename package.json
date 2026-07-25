@@ -5,6 +5,7 @@
   "main": "index.js",
   "scripts": {
     "test": "npx cucumber-js -p runner && npx ts-node ./src/support/reporter/HTMLReporter.ts && npx ts-node ./src/support/reporter/CucumberReporter.ts",
+    "test:browserstack": "cross-env BROWSERSTACK_FAIL_ON_CONNECT_ERROR=true npx cucumber-js -p runner && npx ts-node ./src/support/reporter/HTMLReporter.ts && npx ts-node ./src/support/reporter/CucumberReporter.ts",
     "test:tags": "npx cucumber-js -p runner --tags",
     "failed:test": "npx cucumber-js -p rerun",
     "report": "mkdir -p test-results/reports && npx ts-node ./src/support/reporter/HTMLReporter.ts && npx ts-node ./src/support/reporter/CucumberReporter.ts",

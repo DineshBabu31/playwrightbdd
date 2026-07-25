@@ -6,7 +6,8 @@ import Log from "../logger/Log";
 import { browserstackCredentials } from "../../../global-setup";
 
 const timeInMin: number = 60 * 1000;
-setDefaultTimeout(Number.parseInt(process.env.TEST_TIMEOUT, 10) * timeInMin);
+const testTimeout = Number.parseInt(process.env.TEST_TIMEOUT || '60', 10);
+setDefaultTimeout(testTimeout * timeInMin);
 let browser: Browser;
 let context: BrowserContext;
 let page1: Page;
@@ -24,7 +25,7 @@ async function getWindowSize(context: BrowserContext) {
     return windowSize;
 }
 
-// Connect to BrowserStack when credentials are available; otherwise launch locally.
+// Connect to BrowserStack Automate when credentials are available; otherwise fall back to a local browser.
 BeforeAll(async function () {
     console.log('Preparing browser session...');
 
@@ -34,14 +35,19 @@ BeforeAll(async function () {
         const browserstackUser = process.env.BROWSERSTACK_USER || process.env.BROWSERSTACK_USERNAME || browserstackCredentials.username || '';
         const browserstackAccessKey = process.env.BROWSERSTACK_ACCESS_KEY || browserstackCredentials.accessKey || '';
         const useBrowserStack = !forceLocal && Boolean(browserstackUser && browserstackAccessKey);
+        if (!forceLocal && !browserstackUser) {
+            console.log('BrowserStack is not configured: set BROWSERSTACK_USERNAME/BROWSERSTACK_USER and BROWSERSTACK_ACCESS_KEY.');
+        }
+        console.log(`BrowserStack enabled: ${useBrowserStack}`);
         const browserStackCaps = {
             browser: browserType === 'firefox' ? 'playwright-firefox' : browserType === 'webkit' || browserType === 'safari' ? 'playwright-webkit' : browserType === 'edge' ? 'edge' : 'playwright-chromium',
             os: process.env.BROWSERSTACK_OS || 'Windows',
             os_version: process.env.BROWSERSTACK_OS_VERSION || '10',
+            browser_version: process.env.BROWSERSTACK_BROWSER_VERSION || 'latest',
             name: process.env.BROWSERSTACK_BUILD_NAME || 'Playwright Test',
             build: process.env.BROWSERSTACK_BUILD_NAME || 'playwright-build-1',
             project: process.env.BROWSERSTACK_PROJECT_NAME || 'playwrightbdd',
-            'browserstack.local': 'false',
+            'browserstack.local': process.env.BROWSERSTACK_LOCAL === 'true' ? 'true' : 'false',
             'browserstack.user': browserstackUser,
             'browserstack.key': browserstackAccessKey,
             'browserstack.video': 'true',
@@ -50,11 +56,20 @@ BeforeAll(async function () {
         };
 
         if (useBrowserStack) {
-            browser = await chromium.connect({
-                wsEndpoint: `wss://cdp.browserstack.com/playwright?caps=${encodeURIComponent(JSON.stringify(browserStackCaps))}`
-            });
-            console.log('Connected to BrowserStack');
-            return;
+            try {
+                browser = await chromium.connect({
+                    wsEndpoint: `wss://cdp.browserstack.com/playwright?caps=${encodeURIComponent(JSON.stringify(browserStackCaps))}`,
+                    timeout: 90000,
+                });
+                console.log('Connected to BrowserStack Automate');
+                return;
+            } catch (browserStackError) {
+                console.error(`BrowserStack connection failed: ${browserStackError instanceof Error ? browserStackError.message : browserStackError}`);
+                if (process.env.BROWSERSTACK_FAIL_ON_CONNECT_ERROR === 'true') {
+                    throw browserStackError;
+                }
+                console.log('Falling back to local headless browser');
+            }
         }
 
         const launchOptions = {
@@ -87,7 +102,7 @@ AfterAll(async function () {
             console.log('Browser closed');
         }
     } catch (error) {
-        console.error(`Error closing browser: ${error.message}`);
+        console.error(`Error closing browser: ${error instanceof Error ? error.message : error}`);
         throw error;
     }
 });
@@ -135,7 +150,7 @@ AfterStep(async function ({ result, pickle, gherkinDocument }: ITestCaseHookPara
 // Cleanup after each scenario
 After(async function ({ result, pickle, gherkinDocument }: ITestCaseHookParameter) {
     const { line } = formatterHelpers.PickleParser.getPickleLocation({ gherkinDocument, pickle });
-    const status = result.status;
+    const status = result?.status ?? Status.FAILED;
     const scenario = pickle.name;
 
     await page1.close();
